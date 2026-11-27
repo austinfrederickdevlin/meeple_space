@@ -1,45 +1,33 @@
 <?php
 
-function findUserByEmail(PDO $pdo, string $email): ?array
+function findUserByEmail(PDO $pdo, string $email)
 {
-    $stmt = $pdo->prepare(
-        'SELECT u.id, u.email, u.password_hash, u.role, p.username
-         FROM users u
-         LEFT JOIN user_profiles p ON p.user_id = u.id
-         WHERE u.email = :email
-         LIMIT 1'
-    );
-    $stmt->execute(['email' => $email]);
-    return $stmt->fetch() ?: null;
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+    $stmt->execute([$email]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-/* create account: baris di users dan user_profiles disimpan bersamaan (transaksi). */
-function createUser(PDO $pdo, array $data): array
+function createUser(PDO $pdo, array $data)
 {
-    $pdo->beginTransaction();
-    try {
-        $stmt = $pdo->prepare('INSERT INTO users (email, password_hash) VALUES (:email, :password_hash)');
-        $stmt->execute([
-            'email'         => $data['email'],
-            'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
-        ]);
-        $userId = (int) $pdo->lastInsertId();
+    // Ambil bagian depan email sebagai username & full_name default jika form tidak menyediakan input nama
+    $defaultName = explode('@', $data['email'])[0];
+    $username = $data['username'] ?? $defaultName;
+    $fullName = $data['full_name'] ?? ucfirst($defaultName);
+    $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
 
-        $stmt = $pdo->prepare(
-            'INSERT INTO user_profiles (user_id, username, phone_number, birth_date)
-             VALUES (:user_id, :username, :phone_number, :birth_date)'
-        );
-        $stmt->execute([
-            'user_id'      => $userId,
-            'username'     => explode('@', $data['email'])[0],
-            'phone_number' => $data['phone'],
-            'birth_date'   => $data['dob'],
-        ]);
+    $stmt = $pdo->prepare("
+        INSERT INTO users (username, full_name, email, password, phone_number, date_of_birth, role) 
+        VALUES (?, ?, ?, ?, ?, ?, 'user')
+    ");
 
-        $pdo->commit();
-    } catch (PDOException $ex) {
-        $pdo->rollBack();
-        throw $ex;
-    }
+    $stmt->execute([
+        $username,
+        $fullName,
+        $data['email'],
+        $hashedPassword,
+        $data['phone'] ?? null,
+        $data['dob'] ?? null
+    ]);
+
     return findUserByEmail($pdo, $data['email']);
 }
