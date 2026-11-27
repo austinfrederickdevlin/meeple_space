@@ -2,7 +2,7 @@
 $host = "localhost";
 $root = "root";
 $pass = "";
-$dbname = "meeple_space"; #nama database yang digunakan, harus sama persis dengan nama database yang ada di phpmyadmin, jika tidak maka akan error tapi karena ada try catch maka akan menampilkan pesan errornya
+$dbname = "db_meeplespace"; #nama database yang digunakan, harus sama persis dengan nama database yang ada di phpmyadmin, jika tidak maka akan error tapi karena ada try catch maka akan menampilkan pesan errornya
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
 
